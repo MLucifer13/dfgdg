@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: studyblitz-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/studyblitz
+    depends_on:
+      - db
+    networks:
+      - studyblitz-network
+
+  frontend:
+    build: .
+    container_name: studyblitz-frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=/api
+    depends_on:
+      - backend
+    networks:
+      - studyblitz-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: studyblitz-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=studyblitz
+    ports:
+      - "5433:5432"
+    networks:
+      - studyblitz-network
+
+networks:
+  studyblitz-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
