@@ -1,18 +1,32 @@
 // @ts-ignore - Add axios package with: npm install axios
-import axios from 'axios';
+import axios from "axios";
 
 // Get the API URL from environment variables or use a default
 // @ts-ignore - This is a Vite-specific feature
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // Create axios instance for the API with a timeout and better error handling
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   timeout: 3000, // 3 second timeout to prevent hanging requests
 });
+
+// Add a request interceptor to include the auth token in all requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
 
 // Mock mode for faster responses during presentation
 const MOCK_MODE = true; // Set to true for presentation mode
@@ -22,17 +36,17 @@ const apiCall = async (apiFunc: Promise<any>, mockData: any) => {
   if (!MOCK_MODE) {
     return apiFunc;
   }
-  
+
   try {
     // Try the real API call first with a short timeout
     return await Promise.race([
       apiFunc,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('API timeout')), 800)
-      )
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("API timeout")), 800),
+      ),
     ]);
   } catch (error) {
-    console.log('Using mock data due to API error:', error);
+    console.log("Using mock data due to API error:", error);
     // Return a resolved promise with mock data
     return Promise.resolve({ data: mockData });
   }
@@ -45,22 +59,22 @@ const MOCK_TODOS = [
     title: "Complete project presentation",
     description: "Finalize slides and demo for the final presentation",
     status: "in_progress",
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
   },
   {
     id: 2,
     title: "Practice presentation",
     description: "Run through the demo twice before presenting",
     status: "todo",
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
   },
   {
     id: 3,
     title: "Set up demo environment",
     description: "Make sure all components are working",
     status: "todo",
-    created_at: new Date().toISOString()
-  }
+    created_at: new Date().toISOString(),
+  },
 ];
 
 // Mock data for planner events
@@ -93,42 +107,68 @@ const MOCK_EVENTS = [
 
 // API functions for todos
 export const todoApi = {
-  getAll: () => apiCall(api.get('/todos'), MOCK_TODOS),
-  getById: (id: number) => apiCall(api.get(`/todos/${id}`), MOCK_TODOS.find(t => t.id === id)),
+  getAll: () => apiCall(api.get("/todos"), MOCK_TODOS),
+  getById: (id: number) =>
+    apiCall(
+      api.get(`/todos/${id}`),
+      MOCK_TODOS.find((t) => t.id === id),
+    ),
   create: (todo: any) => {
-    const newTodo = { ...todo, id: Math.floor(Math.random() * 1000), created_at: new Date().toISOString() };
-    return apiCall(api.post('/todos', todo), newTodo);
+    const newTodo = {
+      ...todo,
+      id: Math.floor(Math.random() * 1000),
+      created_at: new Date().toISOString(),
+    };
+    return apiCall(api.post("/todos", todo), newTodo);
   },
-  update: (id: number, todo: any) => apiCall(api.put(`/todos/${id}`, todo), { ...todo, id }),
-  delete: (id: number) => apiCall(api.delete(`/todos/${id}`), { success: true }),
+  update: (id: number, todo: any) =>
+    apiCall(api.put(`/todos/${id}`, todo), { ...todo, id }),
+  delete: (id: number) =>
+    apiCall(api.delete(`/todos/${id}`), { success: true }),
 };
 
 // API functions for planner events
 export const plannerApi = {
-  getEvents: (startDate: string, endDate: string) => 
-    apiCall(api.get(`/planner/events?start_date=${startDate}&end_date=${endDate}`), MOCK_EVENTS),
+  getEvents: (startDate: string, endDate: string) =>
+    apiCall(
+      api.get(`/planner/events?start_date=${startDate}&end_date=${endDate}`),
+      MOCK_EVENTS,
+    ),
   createEvent: (event: any) => {
-    const newEvent = { ...event, id: Math.floor(Math.random() * 1000).toString() };
-    return apiCall(api.post('/planner/events', event), newEvent);
+    const newEvent = {
+      ...event,
+      id: Math.floor(Math.random() * 1000).toString(),
+    };
+    return apiCall(api.post("/planner/events", event), newEvent);
   },
-  updateEvent: (id: number, event: any) => apiCall(api.put(`/planner/events/${id}`, event), { ...event, id }),
-  deleteEvent: (id: number) => apiCall(api.delete(`/planner/events/${id}`), { success: true }),
+  updateEvent: (id: number, event: any) =>
+    apiCall(api.put(`/planner/events/${id}`, event), { ...event, id }),
+  deleteEvent: (id: number) =>
+    apiCall(api.delete(`/planner/events/${id}`), { success: true }),
 };
 
 // API functions for pomodoro
 export const pomodoroApi = {
-  getSessions: () => apiCall(api.get('/pomodoro/sessions'), []),
+  getSessions: () => apiCall(api.get("/pomodoro/sessions"), []),
   createSession: (session: any) => {
-    const newSession = { ...session, id: Math.floor(Math.random() * 1000), created_at: new Date().toISOString() };
-    return apiCall(api.post('/pomodoro/sessions', session), newSession);
+    const newSession = {
+      ...session,
+      id: Math.floor(Math.random() * 1000),
+      created_at: new Date().toISOString(),
+    };
+    return apiCall(api.post("/pomodoro/sessions", session), newSession);
   },
-  updateSession: (id: number, session: any) => apiCall(api.put(`/pomodoro/sessions/${id}`, session), { ...session, id }),
-  getStats: (startDate: string, endDate: string) => 
-    apiCall(api.get(`/pomodoro/stats?start_date=${startDate}&end_date=${endDate}`), { 
-      total_sessions: 12,
-      total_duration: 25 * 12,
-      completed_tasks: 8
-    }),
+  updateSession: (id: number, session: any) =>
+    apiCall(api.put(`/pomodoro/sessions/${id}`, session), { ...session, id }),
+  getStats: (startDate: string, endDate: string) =>
+    apiCall(
+      api.get(`/pomodoro/stats?start_date=${startDate}&end_date=${endDate}`),
+      {
+        total_sessions: 12,
+        total_duration: 25 * 12,
+        completed_tasks: 8,
+      },
+    ),
 };
 
 export default api;

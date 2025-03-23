@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   UserPlus,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 interface NavbarProps {
   isDarkMode?: boolean;
@@ -36,8 +39,9 @@ const Navbar = ({
   activeItem = "dashboard",
 }: NavbarProps) => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const navItems = [
     {
@@ -64,19 +68,30 @@ const Navbar = ({
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // This is a placeholder function that will be replaced with actual backend integration
   const handleLogin = () => {
-    if (isLoggedIn) {
-      // Logout logic
-      setIsLoggedIn(false);
-    } else {
-      // Navigate to login page
-      navigate("/login");
-    }
+    navigate("/login");
   };
 
   const handleSignUp = () => {
     navigate("/signup");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout failed",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -148,7 +163,7 @@ const Navbar = ({
         </Button>
 
         {/* Login/User Profile Button */}
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -157,7 +172,7 @@ const Navbar = ({
               >
                 <div className="flex items-center space-x-2">
                   <User className="h-5 w-5" />
-                  <span>My Profile</span>
+                  <span>{user?.name || "My Profile"}</span>
                 </div>
                 <div className="absolute -inset-0.5 rounded-lg opacity-0 group-hover:opacity-100 bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 blur-sm group-hover:blur transition duration-500" />
               </Button>
@@ -170,9 +185,13 @@ const Navbar = ({
                 <User className="h-4 w-4 mr-2" />
                 <span>Profile</span>
               </DropdownMenuItem>
+              <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-purple-900/20 cursor-pointer">
+                <Settings className="h-4 w-4 mr-2" />
+                <span>Settings</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-gray-700" />
               <DropdownMenuItem
-                onClick={handleLogin}
+                onClick={handleLogout}
                 className="text-red-400 hover:text-red-300 hover:bg-red-900/20 cursor-pointer"
               >
                 <LogOut className="h-4 w-4 mr-2" />
@@ -207,7 +226,7 @@ const Navbar = ({
       {/* Mobile Menu Button */}
       <div className="md:hidden flex items-center">
         {/* Mobile Login Button */}
-        {!isLoggedIn ? (
+        {!isAuthenticated ? (
           <Button
             onClick={handleLogin}
             variant="ghost"
@@ -218,7 +237,7 @@ const Navbar = ({
           </Button>
         ) : (
           <Button
-            onClick={handleLogin}
+            onClick={() => navigate("/profile")}
             variant="ghost"
             className="relative group p-1.5 mr-1.5 rounded-full transition-all duration-300 text-purple-400 hover:text-white hover:bg-purple-900/10"
           >
@@ -295,7 +314,7 @@ const Navbar = ({
                 <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
               </div>
             </Button>
-            {!isLoggedIn ? (
+            {!isAuthenticated ? (
               <>
                 <Link to="/signup" onClick={toggleMobileMenu}>
                   <Button
@@ -321,19 +340,47 @@ const Navbar = ({
                 </Link>
               </>
             ) : (
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/10 px-3 py-2"
-                onClick={() => {
-                  handleLogin();
-                  toggleMobileMenu();
-                }}
-              >
-                <div className="flex items-center space-x-2">
-                  <LogOut className="h-5 w-5" />
-                  <span>Logout</span>
-                </div>
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-gray-400 hover:text-white hover:bg-purple-900/10 px-3 py-2"
+                  onClick={() => {
+                    navigate("/profile");
+                    toggleMobileMenu();
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span>Profile</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-gray-400 hover:text-white hover:bg-purple-900/10 px-3 py-2"
+                  onClick={() => {
+                    navigate("/settings");
+                    toggleMobileMenu();
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Settings className="h-5 w-5" />
+                    <span>Settings</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/10 px-3 py-2"
+                  onClick={() => {
+                    handleLogout();
+                    toggleMobileMenu();
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <LogOut className="h-5 w-5" />
+                    <span>Logout</span>
+                  </div>
+                </Button>
+              </>
             )}
           </div>
         </motion.div>
